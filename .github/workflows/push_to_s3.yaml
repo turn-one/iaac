@@ -1,8 +1,10 @@
 name: Push templates to S3
 run-name: ${{ github.workflow }}
-on: [push]
+on:
+  push:
+  workflow_dispatch:
 jobs:
-  configure-aws-cli:
+  upload-to-s3:
     runs-on: ubuntu-latest
     steps:
       - name: "Update cache"
@@ -14,4 +16,3 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           aws --version
-          aws sts get-caller-identity
