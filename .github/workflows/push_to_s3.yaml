@@ -16,4 +16,5 @@ jobs:
           ls
           aws sts get-caller-identity
           aws s3 cp --include "*-template.yml" --exclude ".git*" . s3://turn-one-iaac/ --recursive
+          aws s3 ls s3://turn-one-iaac
           aws --version
