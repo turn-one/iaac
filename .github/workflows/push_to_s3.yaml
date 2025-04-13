@@ -13,5 +13,7 @@ jobs:
           AWS_DEFAULT_REGION: ap-south-1
         run: |
           export DEBIAN_FRONTEND=noninteractive
+          ls
+          aws sts get-caller-identity
           aws s3 cp --include "*-template.yml" --exclude ".git*" . s3://turn-one-iaac/ --recursive
           aws --version
