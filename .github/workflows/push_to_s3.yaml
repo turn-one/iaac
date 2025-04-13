@@ -1,0 +1,9 @@
+name: Push templates to S3
+run-name: ${{ github.workflow }}
+on: [push]
+jobs:
+  Install-AWS-CLI:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Initialize AWS CLI install"
+        run: apt-get update -y && apt-get upgrade -y --no-install-recommends
