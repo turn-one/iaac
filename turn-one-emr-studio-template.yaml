@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EMR Studio in private subnet for EMR Serverless with VPC Endpoints, no NAT Gateway (without Glue)
+
+Parameters:
+  StudioName:
+    Type: String
+    Default: MyEMRStudio
+  AuthMode:
+    Type: String
+    Default: IAM
+    AllowedValues: [IAM]
+
+Resources:
+
+  # === VPC & Subnet ===
+  EMRStudioVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: emr-studio-vpc
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EMRStudioVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: emr-studio-private-subnet
+
+  EMRStudioSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EMR Studio access
+      VpcId: !Ref EMRStudioVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  # === VPC Endpoints (Interface) ===
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref EMRStudioVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      RouteTableIds: 
+        - !Ref PrivateRouteTable
+      VpcEndpointType: Gateway
+
+  VPCEndpointLogs:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref EMRStudioVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      SubnetIds: [!Ref PrivateSubnet]
+      SecurityGroupIds: [!Ref EMRStudioSG]
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+
+  VPCEndpointSTS:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref EMRStudioVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
+      SubnetIds: [!Ref PrivateSubnet]
+      SecurityGroupIds: [!Ref EMRStudioSG]
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+
+  # Required route table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EMRStudioVPC
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+  # === S3 Bucket ===
+  EMRStudioS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-emrstudio-${AWS::Region}-${AWS::AccountId}'
+
+  # === EMR Studio ===
+  EMRStudio:
+    Type: AWS::EMR::Studio
+    Properties:
+      Name: !Ref StudioName
+      AuthMode: !Ref AuthMode
+      DefaultS3Location: !Sub 's3://${EMRStudioS3Bucket}/'
+      EngineSecurityGroupId: !Ref EMRStudioSG
+      ServiceRole: arn:aws:iam::${AWS_ACCOUNT_ID}:role/TurnOneEMRStudioServiceRole
+      SubnetIds:
+        - !Ref PrivateSubnet
+      VpcId: !Ref EMRStudioVPC
+      WorkspaceSecurityGroupId: !Ref EMRStudioSG
+
+Outputs:
+  StudioURL:
+    Description: EMR Studio URL
+    Value: !GetAtt EMRStudio.Url

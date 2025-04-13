@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: IAM Policy and User Group for Project Developers with Full Access to S3, EMR Studio, and Related Services
+
+Resources:
+  # === IAM User Group ===
+  ProjectDeveloperGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: ProjectDeveloperGroup
+
+  # === IAM Policy ===
+  ProjectDeveloperPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ProjectDeveloperPolicy
+      Groups:
+        - !Ref ProjectDeveloperGroup # Attach policy directly to the group
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # === S3 Permissions ===
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource:
+              - !Sub "arn:aws:s3:::*"
+
+          # === EMR Studio Permissions ===
+          - Effect: Allow
+            Action:
+              - elasticmapreduce:*
+            Resource: "*"
+
+          # === EMR Serverless Permissions ===
+          - Effect: Allow
+            Action:
+              - emr-serverless:*
+            Resource: "*"
+
+
+          # === EC2 Permissions (For EMR Clusters) ===
+          - Effect: Allow
+            Action:
+              - ec2:*
+            Resource: "*"
+
+          # === IAM Permissions for EMR Roles ===
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource:
+              - arn:aws:iam::${AWS_ACCOUNT_ID}:role/TurnOneEMRStudioServiceRole
+              - arn:aws:iam::${AWS_ACCOUNT_ID}:role/TurnOneEMRStudioUserRole
+
+          # === CloudWatch Logs Permissions ===
+          - Effect: Allow
+            Action:
+              - logs:*
+            Resource: "*"
+
+          # === CloudFormation Permissions ===
+          - Effect: Allow
+            Action:
+              - cloudformation:*
+            Resource: "*"
+
+          # === VPC Permissions ===
+          - Effect: Allow
+            Action:
+              - ec2:DescribeVpcs
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeRouteTables
+              - ec2:DescribeVpcEndpoints
+            Resource: "*"
+          
+          # === IAM ===
+          - Effect: Allow
+            Action:
+              - iam:*
+            Resource: "*"
+
+Outputs:
+  DeveloperGroupName:
+    Description: Name of the Developer User Group
+    Value: !Ref ProjectDeveloperGroup
+  DeveloperPolicy:
+    Description: ARN of the Project Developer Policy
+    Value: !Ref ProjectDeveloperPolicy
