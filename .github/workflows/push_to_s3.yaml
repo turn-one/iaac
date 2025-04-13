@@ -13,9 +13,5 @@ jobs:
           AWS_DEFAULT_REGION: ap-south-1
         run: |
           export DEBIAN_FRONTEND=noninteractive
-          env
-          sudo apt-get update -y && sudo apt-get upgrade -y
-          snap version
-          sudo snap install aws-cli --classic
           aws --version
           aws sts get-caller-identity
