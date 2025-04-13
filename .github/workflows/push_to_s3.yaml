@@ -1,8 +1,6 @@
 name: Push templates to S3
 run-name: ${{ github.workflow }}
-on:
-  push:
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 jobs:
   upload-to-s3:
     runs-on: ubuntu-latest
